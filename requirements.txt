@@ -4,3 +4,4 @@ sklearn
 scipy
 openpyxl
 matplotlib
+seaborn
