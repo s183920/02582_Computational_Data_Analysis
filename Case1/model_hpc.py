@@ -124,7 +124,7 @@ def accuracy_score(y_true, y_pred, inv_trns = lambda x: x):
 
 ##################################### MODELS ########################################################
 
-def decision_tree(X, y, cv):
+def decision_tree(X, y, cv, save_name = "model"):
     trns = lambda x: x
     inv_trns = lambda x: x
 
@@ -132,21 +132,27 @@ def decision_tree(X, y, cv):
     dtree=DecisionTreeRegressor()
     score = make_scorer(accuracy_score, greater_is_better=True, inv_trns = inv_trns)
     param_grid = {
-        'min_samples_leaf': range(1,200,5),
+        'min_samples_leaf': range(1,200,1),
+        'max_depth' : list(range(1, 101, 10)) + [None]
     }   
 
     cv_grid = GridSearchCV(estimator = dtree, param_grid = param_grid, cv = cv, verbose=2, n_jobs=-1,scoring=score)
     cv_grid.fit(X, trns(y))
+
+    with open(save_name, "wb") as file:
+        pickle.dump(cv_grid, file)
+
     return cv_grid
 
-def adaboost(X, y, cv):
-    trns = lambda x: x
-    inv_trns = lambda x: x
+def adaboost(X, y, cv, save_name = "model"):
+    trns = lambda x: np.log(x)
+    inv_trns = lambda x: np.exp(x)
     score = make_scorer(accuracy_score, greater_is_better=True, inv_trns = inv_trns)
 
     # Try to experiment with max_samples, max_features, number of modles, and other models
-    n_estimators = [50] #range(5,101, 5)
-    max_depth = range(15,25)
+    n_estimators = list(range(5,101, 5))
+    # max_depth = list(range(1,26))
+    max_depth = list(range(20, 26))
 
     #We do an outer loop over max_depth here ourselves because we cannot include in the CV paramgrid.
     #Notice this is not a "proper" way to select the best max_depth but for the purpose of vizuallizing behaviour it should do
@@ -174,17 +180,19 @@ def adaboost(X, y, cv):
 
         # cv_grid["test_acc"][:,i-1] = boost_grid.cv_results_['mean_test_score']
         cv_grid["boost_grid"][j] = boost_grid
-        cv_grid["max_depth"][j] = i
+
+        # save
+        with open(save_name, "wb") as file:
+            pickle.dump(cv_grid, file)
 
     return cv_grid
 
 
-
-def fit_model(model_name, X, y, cv = None):
+def fit_model(model_name, X, y, cv = None, save_name = "model"):
     if model_name == "decision_tree":
-        return decision_tree(X, y, cv)
+        return decision_tree(X, y, cv, save_name)
     elif model_name == "adaboost":
-        return adaboost(X, y, cv)
+        return adaboost(X, y, cv, save_name)
 
 
 
@@ -192,16 +200,19 @@ if __name__ == "__main__":
     data_format = "summary_stats" # summary_stats or onehot
     X, X_train, X_val, y, y_train, y_val = get_data(data_format)
     
-    cv = TimeSeriesSplit(n_splits=2) # either a TimeSeriesSplit(n_splits=2) or an int
-    model_type = "adaboost"
+    cv = 5#TimeSeriesSplit(n_splits=5) # either a TimeSeriesSplit(n_splits=2) or an int
+    model_type = "adaboost" # either decision_tree or adaboost for now
     X_fit, y_fit = X_train, y_train
 
     global cv_grid
-    cv_grid = fit_model(model_type, X_fit, y_fit, cv)
+    os.makedirs("models", exist_ok=True)
+    save_name = f"models/logtrans_model_{model_type}_data_{data_format}{'' if isinstance(cv, int) else '_tssplit'}.pkl"
+
+    cv_grid = fit_model(model_type, X_fit, y_fit, cv, save_name)
     
 
-    save_name = f"models/model_{model_type}_data_{data_format}{'' if isinstance(cv, int) else '_tssplit'}.pkl"
-    os.makedirs("models", exist_ok=True)
-    with open(save_name, "wb") as file:
-        pickle.dump(cv_grid, file)
+    
+    
+    # with open(save_name, "wb") as file:
+    #     pickle.dump(cv_grid, file)
     # joblib.dump(cv_grid, save_name)
