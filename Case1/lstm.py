@@ -134,23 +134,26 @@ if __name__ == "__main__":
     data_format = "summary_stats" # summary_stats or onehot
     X, X_train, X_val, y, y_train, y_val = get_data(data_format)
 
-    train_loader = DataLoader(FlightDataset(), batch_size=3, shuffle=True)
-    test_loader = DataLoader(FlightDataset(type = "validation"), batch_size=3, shuffle=False)
+    
 
-    learning_rate = [5e-5]
-    num_hidden_units = [16]
+    learning_rate = 5e-5
+    num_hidden_units = [16, 32, 64]
+    sequence_length = [range(1,10)]
     save_name = "models/lstm_model.pkl"
 
     i = 0
-    N_models = len(learning_rate)*len(num_hidden_units)
+    N_models = len(sequence_length)*len(num_hidden_units)
     model_grid = {
-        "lr" : [None]*N_models,
         "num_hidden_units":[None]*N_models,
         "acc_val" : [None]*N_models,
         "acc_train" : [None]*N_models,
         "model" : [None]*N_models,
+        "sequence_length" : [None]*N_models,
     }
-    for lr in learning_rate:
+
+    for sl in sequence_length:
+        train_loader = DataLoader(FlightDataset(), batch_size=3, shuffle=True)
+        test_loader = DataLoader(FlightDataset(type = "validation"), batch_size=3, shuffle=False)
         for hu in num_hidden_units:
             model = ShallowRegressionLSTM(num_sensors=X_train.shape[1], hidden_units=hu)
 
@@ -158,9 +161,9 @@ if __name__ == "__main__":
             model.to(device)
 
 
-            optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+            optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
-            n_epochs = 2
+            n_epochs = 20
             train_accs = np.zeros((n_epochs))
             test_accs = np.zeros((n_epochs))
             for ix_epoch in range(n_epochs):
@@ -169,11 +172,14 @@ if __name__ == "__main__":
                 test_accs[ix_epoch] = -test_model(test_loader, model, loss_function)
                 print()
 
-            model_grid["lr"][i] = lr
+            # model_grid["lr"][i] = lr
             model_grid["num_hidden_units"][i] = hu
             model_grid["acc_train"][i] = train_accs
-            model_grid["acc_val"] = test_accs
-            model_grid["model"] = model
+            model_grid["acc_val"][i] = test_accs
+            model_grid["model"][i] = model
+            model_grid["sequence_length"][i] = sl
+
+            i += 1
 
             with open(save_name, "wb") as file:
                 pickle.dump(model_grid, file)
