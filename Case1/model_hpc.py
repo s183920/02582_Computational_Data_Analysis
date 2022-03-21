@@ -21,9 +21,12 @@ import joblib
 import dill as pickle
 
 ##################################### DATA ########################################################
-def get_data(data_format = "summary_stats"):
+def get_data(data_format = "summary_stats", test = False):
     """Gets the X and y var. Data format must be onehot or summary_stats"""
-    data_file = "processed_data.csv"
+    if test:
+        data_file = "processed_data_test.csv"
+    else:
+        data_file = "processed_data.csv"
     d = pd.read_csv(data_file)
 
     ## Vi bliver ikke bedømt på fly hvor der er nul passagerer
@@ -31,7 +34,10 @@ def get_data(data_format = "summary_stats"):
 
     ## Splits
     d.ScheduleTime = pd.to_datetime(d.ScheduleTime)
-    ix_val = ((d.ScheduleTime.dt.year==2022) & (d.ScheduleTime.dt.month!=1))
+    if test:
+        ix_val = ((d.ScheduleTime.dt.year==2022) & (d.ScheduleTime.dt.month==3))
+    else:
+        ix_val = ((d.ScheduleTime.dt.year==2022) & (d.ScheduleTime.dt.month!=1))
 
     ## Fjerner udvalgte kolonner da de allerede er blevet encoded som sin/cos
     ## Eller hvis kolonnen kun indehodler identiske værdier
