@@ -12,7 +12,7 @@ mkdir -p "logs"
 ### -- ask for number of cores (default: 1) -- 
 #BSUB -n 1 
 ### -- set walltime limit: hh:mm --  maximum 24 hours for GPU-queues right now 
-#BSUB -W 4:00 
+#BSUB -W 10:00 
 ### -- request 5GB of system-memory --
 #BSUB -R "rusage[mem=5GB]"
 ### -- set the email address --
@@ -28,7 +28,7 @@ mkdir -p "logs"
 ### -- end of LSF options --
 
 # activate env
-source CDA-case-env/bin/activate
+source ../CDA-case-env/bin/activate
 
 # load additional modules
 # module load cuda/11.4
